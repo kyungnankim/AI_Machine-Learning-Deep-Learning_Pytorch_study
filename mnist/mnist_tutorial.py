@@ -2,52 +2,53 @@
 import torch
 import torchvision
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
+import torch.optim as optim
 from torch.utils.data import (DataLoader,)
-)
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
+# Device configuration
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Hyper-parameters
+input_size = 784
+hidden_size = 500
+num_classes = 10
+learning_rate = 0.001
+batch_size = 128
+num_epochs = 100
+
+# MNIST dataset
+train_dataset = datasets.MNIST(
+    root="mnistdataset/", train=True, transform=transforms.ToTensor(), download=True
+)
+test_dataset = datasets.MNIST(
+    root="mnistdataset/", train=False, transform=transforms.ToTensor(), download=True
+)
+# Data loader
+train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
+
+# Fully connected neural network with one hidden layer
 class NN(nn.Module):
-    def __init__(self, input_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes):
         super(NN, self).__init__()
-        self.fc1 = nn.Linear(input_size, 50)
-        self.fc2 = nn.Linear(50, num_classes)
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 
-# Set device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Hyperparameters
-input_size = 784
-num_classes = 10
-learning_rate = 0.001
-batch_size = 128
-num_epochs = 1
-
-# Load Data
-train_dataset = datasets.MNIST(
-    root="dataset/", train=True, transform=transforms.ToTensor(), download=True
-)
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_dataset = datasets.MNIST(
-    root="dataset/", train=False, transform=transforms.ToTensor(), download=True
-)
-test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
-
-# Initialize network
-model = NN(input_size=input_size, num_classes=num_classes).to(device)
+model = NN(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes).to(device)
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-# Train Network
+# Train the model
 for epoch in range(num_epochs):
     for batch_idx, (data, targets) in enumerate(train_loader):
 
@@ -65,11 +66,6 @@ for epoch in range(num_epochs):
         optimizer.step()
 
 def check_accuracy(loader, model):
-    if loader.dataset.train:
-        print("Checking accuracy on training data")
-    else:
-        print("Checking accuracy on test data")
-
     num_correct = 0
     num_samples = 0
     model.eval()
@@ -86,7 +82,7 @@ def check_accuracy(loader, model):
             num_samples += predictions.size(0)
 
         print(
-            f"Got {num_correct} / {num_samples} with accuracy {float(num_correct)/float(num_samples)*100:.2f}"
+            f"{num_correct} / {num_samples} with accuracy {float(num_correct)/float(num_samples)*100:.2f}"
         )
 
     model.train()
